@@ -20,4 +20,4 @@ jobs:
           command: |
             cd client
             npm
-            npm build
+            npm run build
