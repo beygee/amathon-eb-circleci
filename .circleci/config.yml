@@ -3,21 +3,64 @@ jobs:
   build:
     docker:
       - image: circleci/node:7.10
-    working_directory: ~/amathon-eb-circleci
+    working_directory: ~/amathon-eb-circleci # 현재 실행중인 프로젝트명을 적어주세요
     steps:
       - checkout
       - restore_cache:
-          key: dependency-cache-{{ checksum "package.json" }}
+          name: Restore Yarn Package Cache
+          keys:
+            - yarn-packages-{{ checksum "yarn.lock" }}
       - run:
-          name: install-npm-wee
-          command: npm install
+          name: Install Dependencies
+          command: yarn install --frozen-lockfile
       - save_cache:
-          key: dependency-cache-{{ checksum "package.json" }}
+          name: Save Yarn Package Cache
+          key: yarn-packages-{{ checksum "yarn.lock" }}
           paths:
-            - ./node_modules
+            - ~/.cache/yarn
       - run:
           name: Install Dependencies && Build Client
           command: |
             cd client
-            npm i
-            npm run build
+            rm -R ./build
+            yarn
+            yarn build
+  deploy:
+    docker:
+      - image: circleci/python:2.7
+    working_directory: ~/amathon-eb-circleci
+    steps:
+      - checkout
+      - run:
+          name: Install awscli
+          command: |
+            sudo pip install awsebcli --upgrade
+      - run:
+          name: Create AWS credentials manually
+          command: |
+            mkdir ~/.aws
+            touch ~/.aws/config
+            chmod 600 ~/.aws/config
+            echo "[profile amathon]" > ~/.aws/config
+            echo "aws_access_key_id=$AWS_ACCESS_KEY_ID" >> ~/.aws/config
+            echo "aws_secret_access_key=$AWS_SECRET_ACCESS_KEY" >> ~/.aws/config
+            ls
+      - run:
+          name: Deploy to EB if branch is Master
+          command: |
+            eb use amathon-dev --profile amathon 
+            # 현재 eb application 이름과 IAM credentials profile 이름을 적어주세요.
+            eb deploy --profile amathon
+
+workflows:
+  version: 2
+  build-deploy:
+    jobs:
+      - build
+      - deploy:
+          requires:
+            - build
+          filters:
+            branches:
+              only:
+                - master
