@@ -19,5 +19,5 @@ jobs:
           name: Install Dependencies && Build Client
           command: |
             cd client
-            npm
+            npm i
             npm run build
