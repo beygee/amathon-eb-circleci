@@ -2,7 +2,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: circleci/node:7.10
+      - image: circleci/node:8.10
     working_directory: ~/amathon-eb-circleci # 현재 실행중인 프로젝트명을 적어주세요
     steps:
       - checkout
